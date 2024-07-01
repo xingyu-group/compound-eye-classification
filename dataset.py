@@ -19,12 +19,12 @@ class CompoundEyeDataset(data.Dataset):
         self.fog_strength_split = 10
         self.transforms = transforms
         self.reset_random_state()
-        self.random_split_data()
+        self.random_split_data(ratio=0.9)
 
     def reset_random_state(self):
         self.rand_state = np.random.RandomState(self.seed)
     
-    def random_split_data(self):
+    def random_split_data(self, ratio=0.9):
         image_list = []
         labels_list = []
         label = 0
@@ -45,10 +45,10 @@ class CompoundEyeDataset(data.Dataset):
         idx = self.rand_state.permutation(len(image_list))
         image_list = np.array(image_list)
         labels_list = np.array(labels_list)
-        train_list = image_list[idx[:int(len(idx)*0.9)]]
-        train_labels = labels_list[idx[:int(len(idx)*0.9)]]
-        test_list = image_list[idx[int(len(idx)*0.9):]]
-        test_labels = labels_list[idx[int(len(idx)*0.9):]]
+        train_list = image_list[idx[:int(len(idx)*ratio)]]
+        train_labels = labels_list[idx[:int(len(idx)*ratio)]]
+        test_list = image_list[idx[int(len(idx)*ratio):]]
+        test_labels = labels_list[idx[int(len(idx)*ratio):]]
         
         if self.train:
             self.imgs = train_list
@@ -67,6 +67,7 @@ class CompoundEyeDataset(data.Dataset):
             self.labels = test_labels
     
     def set_test_fog_strength(self, fog_strength):
+        assert self.train == False
         assert fog_strength <= self.fog_strength_split and fog_strength > 0
         self.imgs = self.test_data_fog_split[fog_strength-1]
         self.labels = self.test_label_fog_split[fog_strength-1]
@@ -74,6 +75,7 @@ class CompoundEyeDataset(data.Dataset):
         self.labels = np.array(self.labels)
 
     def reset_test_fog_strength(self):
+        assert self.train == False
         self.imgs = []
         self.labels = []
         for i in range(len(self.test_data_fog_split)):
