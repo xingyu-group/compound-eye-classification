@@ -18,4 +18,4 @@ python main.py --data_path ./
 ```
 
 ## Results
-The results of the model training and evaluation will be saved in the `results/` directory. This includes accuracy, loss plots, and confusion matrices.
+The results of the model training and evaluation will be saved in the `results/` directory as .csv files.
