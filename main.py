@@ -3,6 +3,7 @@ import argparse
 import torch
 import torch.nn as nn
 import torchvision
+import pandas
 from dataset import CompoundEyeDataset
 from utils.progress_bar import progress_bar
 
@@ -21,9 +22,8 @@ use_cuda = torch.cuda.is_available()
 device = torch.device("cuda" if use_cuda else "cpu")
 f = None
 
-if not os.path.exists('./model-checkpoint'):
-    os.makedirs('./model-checkpoint')
 
+training_loss_all = []
 test_loss_all = [[] for _ in range(10)]
 test_accuracy_all = [[] for _ in range(10)]
 
@@ -93,6 +93,7 @@ def train(model, train_loader, optimizer):
         
         # fog strength evaluation is done every 1000 batches
         if (batch_idx+1) % 1000 == 0:
+            training_loss_all.append(loss_sum/1000)
             loss_sum = 0
             eval_diff_fog_strength(model, device)
             model.train()
@@ -105,6 +106,7 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     schedular = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, 10)
 
+    # training process
     for epoch in range(2):
         print(f'Epoch: {epoch}')
         train(model, train_loader, optimizer)
@@ -112,8 +114,29 @@ def main():
         eval_dataset(model, train_loader, device)
         eval_dataset(model, test_loader, device)
 
-    torch.save(model.state_dict(), './model-checkpoint/resnet18.pt')
+    # save model
+    if not os.path.exists('./model-checkpoint'):
+        os.makedirs('./model-checkpoint')
+    torch.save(model.state_dict(), './model-checkpoint/resnet18_.pt')
+    # save training and testing results
+    if not os.path.exists('./results'):
+        os.makedirs('./results')
+    
+    df_train_loss = pandas.DataFrame(training_loss_all)
+    df_test_loss = pandas.DataFrame(test_loss_all).T
+    df_test_accuracy = pandas.DataFrame(test_accuracy_all).T
+    
+    df_train_loss.columns = ['training_loss']
+    df_test_accuracy.columns = ['strength_'+str(i+1) for i in range(10)]
+    df_test_loss.columns = ['strength_'+str(i+1) for i in range(10)]
 
+    df_train_loss.insert(0, 'Step', range(1, len(training_loss_all)+1))
+    df_test_loss.insert(0, 'Step', range(1, len(training_loss_all)+1))
+    df_test_accuracy.insert(0, 'Step', range(1, len(training_loss_all)+1))
+
+    df_train_loss.to_csv('./results/training_loss.csv', index=False)
+    df_test_loss.to_csv('./results/test_loss.csv', index=False)
+    df_test_accuracy.to_csv('./results/test_accuracy.csv', index=False)
 
 if __name__ == '__main__':
     main()
