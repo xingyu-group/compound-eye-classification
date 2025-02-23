@@ -3,4 +3,4 @@ __pycache__
 */*.pt
 *.png
 *.pt
-*/wandb
+wandb
